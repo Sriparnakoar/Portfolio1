@@ -1,3 +1,4 @@
+
 portfolio_id,security_id,action,quantity,price,security_type
 POR001,AAPL,Buy,20,150,Equity
 POR001,AAPL,Buy,60,150,Equity

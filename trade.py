@@ -43,21 +43,49 @@
 
 
 
+
 import csv
-import json
 import math
-with open("portfolios.json", "r") as file:
-    portfolios = json.load(file)
+portfolios = {}
+with open("portfolios_test.csv", "r") as file:
+    reader = csv.DictReader(file)
+    for row in reader:
+        portfolio_id = row["portfolio_id"]
+        if portfolio_id not in portfolios:
+            portfolios[portfolio_id] = {
+                "cash_balance": float(row["cash_balance"]),
+                "restricted_securities": [],
+                "max_position_pct": float(row["max_position_pct"]),
+                "current_holdings": []
+            }
+            restricted = row["restricted_securities"].strip()
+            if restricted:
+                portfolios[portfolio_id]["restricted_securities"] = (
+                    restricted.split(";")
+                )
+        security_id = row["security_id"].strip()
+        if security_id:
+
+            portfolios[portfolio_id]["current_holdings"].append({
+                "security_id": security_id,
+                "quantity": float(row["quantity"]),
+                "market_price": float(row["market_price"])
+            })
 def check_trade(trade):
-    portfolio_id = trade["portfolio_id"]
-    security_id = trade["security_id"]
+
+    portfolio_id = trade["portfolio_id"].strip()
+    security_id = trade["security_id"].strip()
     action = trade["action"].strip().capitalize()
+
+    # STEP 1: VALIDATION
 
     try:
         quantity = float(trade["quantity"])
         price = float(trade["price"])
+
     except (ValueError, TypeError):
         return "Rejected", "Invalid trade data."
+
     if (
         not math.isfinite(quantity)
         or not math.isfinite(price)
@@ -65,22 +93,35 @@ def check_trade(trade):
         or price <= 0
         or action not in ["Buy", "Sell"]
     ):
+
         return "Rejected", "Invalid trade data."
+
+    # GET PORTFOLIO DATA
+
     portfolio = portfolios.get(portfolio_id)
 
     if portfolio is None:
         return "Rejected", "Portfolio not found."
 
-    cash_balance = float(portfolio["cash_balance"])
+    cash_balance = portfolio["cash_balance"]
+
     restricted = portfolio["restricted_securities"]
+
     holdings = portfolio["current_holdings"]
-    max_position_pct = float(portfolio["max_position_pct"])
+
+    max_position_pct = portfolio["max_position_pct"]
+
+    # FIND EXISTING HOLDINGS
+
     existing_quantity = 0
 
     for holding in holdings:
+
         if holding["security_id"] == security_id:
-            existing_quantity += float(holding["quantity"])
+
+            existing_quantity += holding["quantity"]
     if security_id in restricted:
+
         return (
             "Rejected",
             "Security is restricted for this portfolio."
@@ -88,32 +129,35 @@ def check_trade(trade):
     if action == "Sell":
 
         if existing_quantity < quantity:
+
             return (
                 "Rejected",
                 "Insufficient holdings to sell."
             )
-
     if action == "Buy":
 
         trade_cost = quantity * price
 
         if trade_cost > cash_balance:
+
             return (
                 "Rejected",
                 "Insufficient cash for this buy order."
             )
-
         post_trade_cash = cash_balance - trade_cost
+
         post_trade_quantity = existing_quantity + quantity
+
         post_trade_value = post_trade_quantity * price
+
         value_of_other_holdings = 0
+
         for holding in holdings:
 
             if holding["security_id"] != security_id:
 
                 holding_value = (
-                    float(holding["quantity"])
-                    * float(holding["market_price"])
+                    holding["quantity"] * holding["market_price"]
                 )
 
                 value_of_other_holdings += holding_value
@@ -123,17 +167,12 @@ def check_trade(trade):
             + post_trade_value
             + value_of_other_holdings
         )
-
         if total_portfolio_value_after <= 0:
-            return (
-                "Rejected",
-                "Invalid portfolio value."
-            )
+            return "Rejected", "Invalid portfolio value."
 
         position_pct = (
             post_trade_value / total_portfolio_value_after
         )
-
         if position_pct > max_position_pct:
 
             return (
@@ -145,13 +184,9 @@ def check_trade(trade):
 results = []
 
 with open("trades_test.csv", "r") as file:
-
     reader = csv.DictReader(file)
-
     for trade in reader:
-
         decision, reason = check_trade(trade)
-
         results.append({
             "portfolio_id": trade["portfolio_id"],
             "security_id": trade["security_id"],
@@ -161,6 +196,7 @@ with open("trades_test.csv", "r") as file:
             "security_type": trade["security_type"],
             "decision": decision,
             "reason": reason
+
         })
 with open("trade_results.csv", "w", newline="") as file:
 
@@ -175,18 +211,16 @@ with open("trade_results.csv", "w", newline="") as file:
         "reason"
     ]
 
-    writer = csv.DictWriter(
-        file,
-        fieldnames=fieldnames
-    )
+    writer = csv.DictWriter(file, fieldnames=fieldnames)
 
     writer.writeheader()
+
     writer.writerows(results)
+
 print("\nPORTFOLIO TRADE COMPLIANCE RESULTS")
+
 print("=" * 65)
-
 for result in results:
-
     print(
         result["portfolio_id"],
         result["security_id"],
@@ -194,12 +228,9 @@ for result in results:
         "=>",
         result["decision"]
     )
-
     print("Reason:", result["reason"])
     print("-" * 65)
-
-
-print("\nTotal trades:", len(results))
+print("\nTOTAL TRADES:", len(results))
 
 print(
     "Approved:",
