@@ -76,9 +76,6 @@ def check_trade(trade):
     portfolio_id = trade["portfolio_id"].strip()
     security_id = trade["security_id"].strip()
     action = trade["action"].strip().capitalize()
-
-    # STEP 1: VALIDATION
-
     try:
         quantity = float(trade["quantity"])
         price = float(trade["price"])
@@ -95,24 +92,14 @@ def check_trade(trade):
     ):
 
         return "Rejected", "Invalid trade data."
-
-    # GET PORTFOLIO DATA
-
     portfolio = portfolios.get(portfolio_id)
 
     if portfolio is None:
         return "Rejected", "Portfolio not found."
-
     cash_balance = portfolio["cash_balance"]
-
     restricted = portfolio["restricted_securities"]
-
     holdings = portfolio["current_holdings"]
-
     max_position_pct = portfolio["max_position_pct"]
-
-    # FIND EXISTING HOLDINGS
-
     existing_quantity = 0
 
     for holding in holdings:
@@ -121,13 +108,11 @@ def check_trade(trade):
 
             existing_quantity += holding["quantity"]
     if security_id in restricted:
-
         return (
             "Rejected",
             "Security is restricted for this portfolio."
         )
     if action == "Sell":
-
         if existing_quantity < quantity:
 
             return (
@@ -135,23 +120,16 @@ def check_trade(trade):
                 "Insufficient holdings to sell."
             )
     if action == "Buy":
-
         trade_cost = quantity * price
-
         if trade_cost > cash_balance:
-
             return (
                 "Rejected",
                 "Insufficient cash for this buy order."
             )
         post_trade_cash = cash_balance - trade_cost
-
         post_trade_quantity = existing_quantity + quantity
-
         post_trade_value = post_trade_quantity * price
-
         value_of_other_holdings = 0
-
         for holding in holdings:
 
             if holding["security_id"] != security_id:
@@ -212,11 +190,8 @@ with open("trade_results.csv", "w", newline="") as file:
     ]
 
     writer = csv.DictWriter(file, fieldnames=fieldnames)
-
     writer.writeheader()
-
     writer.writerows(results)
-
 print("\nPORTFOLIO TRADE COMPLIANCE RESULTS")
 
 print("=" * 65)
