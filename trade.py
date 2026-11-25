@@ -218,5 +218,4 @@ print(
         for r in results
     )
 )
-
 print("\nResults saved to trade_results.csv")
