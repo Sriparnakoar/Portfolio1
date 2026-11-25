@@ -1,5 +1,7 @@
 
 import pandas as pd
+
+# Load trades
 df = pd.read_csv("trades_test.csv")
 
 results = []
@@ -35,7 +37,6 @@ for _, trade in df.iterrows():
     })
 output = pd.DataFrame(results)
 output.to_csv("trade_compliance_results.csv", index=False)
-
-print(output.to_string(index=False))
+print(output)
 
 print("\nResults saved to trade_compliance_results.csv")
