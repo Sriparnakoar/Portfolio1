@@ -46,15 +46,9 @@
 import csv
 import json
 import math
-
-
-# Load portfolio reference data
 with open("portfolios.json", "r") as file:
     portfolios = json.load(file)
-
-
 def check_trade(trade):
-
     portfolio_id = trade["portfolio_id"]
     security_id = trade["security_id"]
     action = trade["action"].strip().capitalize()
@@ -64,8 +58,6 @@ def check_trade(trade):
         price = float(trade["price"])
     except (ValueError, TypeError):
         return "Rejected", "Invalid trade data."
-
-    # STEP 1: Validate trade data
     if (
         not math.isfinite(quantity)
         or not math.isfinite(price)
@@ -74,8 +66,6 @@ def check_trade(trade):
         or action not in ["Buy", "Sell"]
     ):
         return "Rejected", "Invalid trade data."
-
-    # Find portfolio
     portfolio = portfolios.get(portfolio_id)
 
     if portfolio is None:
@@ -85,22 +75,16 @@ def check_trade(trade):
     restricted = portfolio["restricted_securities"]
     holdings = portfolio["current_holdings"]
     max_position_pct = float(portfolio["max_position_pct"])
-
-    # Find existing security holding
     existing_quantity = 0
 
     for holding in holdings:
         if holding["security_id"] == security_id:
             existing_quantity += float(holding["quantity"])
-
-    # STEP 2: Restricted security check
     if security_id in restricted:
         return (
             "Rejected",
             "Security is restricted for this portfolio."
         )
-
-    # STEP 3: Sell check
     if action == "Sell":
 
         if existing_quantity < quantity:
@@ -109,7 +93,6 @@ def check_trade(trade):
                 "Insufficient holdings to sell."
             )
 
-    # STEP 4: Buy affordability check
     if action == "Buy":
 
         trade_cost = quantity * price
@@ -120,16 +103,10 @@ def check_trade(trade):
                 "Insufficient cash for this buy order."
             )
 
-        # STEP 5: Position concentration check
-
         post_trade_cash = cash_balance - trade_cost
-
         post_trade_quantity = existing_quantity + quantity
-
         post_trade_value = post_trade_quantity * price
-
         value_of_other_holdings = 0
-
         for holding in holdings:
 
             if holding["security_id"] != security_id:
@@ -164,12 +141,7 @@ def check_trade(trade):
                 "Exceeds maximum position concentration — "
                 "requires approval."
             )
-
-    # STEP 6: Approved
     return "Approved", "Trade passed all compliance checks."
-
-
-# Read proposed trades
 results = []
 
 with open("trades_test.csv", "r") as file:
@@ -190,9 +162,6 @@ with open("trades_test.csv", "r") as file:
             "decision": decision,
             "reason": reason
         })
-
-
-# Write output CSV
 with open("trade_results.csv", "w", newline="") as file:
 
     fieldnames = [
@@ -213,9 +182,6 @@ with open("trade_results.csv", "w", newline="") as file:
 
     writer.writeheader()
     writer.writerows(results)
-
-
-# Display results
 print("\nPORTFOLIO TRADE COMPLIANCE RESULTS")
 print("=" * 65)
 
